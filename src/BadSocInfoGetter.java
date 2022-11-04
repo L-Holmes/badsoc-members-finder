@@ -1,4 +1,44 @@
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
+
+class BookingDetails
+{
+    private String name = "[None]";
+    private boolean isMember = false;
+    private String bookingSelected = "[None]";
+
+    public BookingDetails(String name, String bookingSelected, boolean isMember){
+        this.name = name;
+        this.isMember = isMember;
+        this.bookingSelected = bookingSelected;
+    }
+
+    public boolean isMember() {
+        return isMember;
+    }
+
+    public void setMember(boolean member) {
+        isMember = member;
+    }
+
+    public String getBookingSelected() {
+        return bookingSelected;
+    }
+
+    public void setBookingSelected(String bookingSelected) {
+        this.bookingSelected = bookingSelected;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+}
 
 public class BadSocInfoGetter {
 
@@ -25,6 +65,7 @@ public class BadSocInfoGetter {
         List<List<String>> members = reader.readCSV(membersCSV);
         return members;
     }
+
 
     public void getAllInfo()
     {
@@ -55,24 +96,80 @@ public class BadSocInfoGetter {
             else if(colID.equals("members_surname_col_index")) members_surname_col_index = index;
         }
 
+
+        HashMap<String, BookingDetails> nameToSessionAllBookees = new HashMap<>();
+        HashMap<String, ArrayList<BookingDetails>> sessionToBookees = new HashMap<>();
+
         //get bookings
         //cut down to relevant columns
         List<List<String>> bookings = getBookings(reader);
+
+
         for(List<String> entry : bookings){
-            String book_name = entry.get(bookings_name_index);
-            String book_session = entry.get(bookings_session_index);
-            System.out.println("----------------");
-            System.out.println(book_name + " ~ "+ book_session);
+            //get info
+            String book_name = entry.get(bookings_name_index).strip().toLowerCase();
+            String book_session = entry.get(bookings_session_index).strip();
+
+            //create booking entry
+            BookingDetails bookingEntry = new BookingDetails(book_name, book_session, false);
+
+            //update name to bookee
+            nameToSessionAllBookees.put(book_name,  bookingEntry);
+
+            //update session to bookees
+            if(sessionToBookees.containsKey(book_session)){
+                ArrayList<BookingDetails> existingDetails = sessionToBookees.get(book_session);
+                existingDetails.add(bookingEntry);
+                sessionToBookees.put(book_session, existingDetails);
+            }
+            else{
+                ArrayList<BookingDetails> bookeeDetails = new ArrayList<>();
+                bookeeDetails.add(bookingEntry);
+                sessionToBookees.put(book_session, bookeeDetails);
+            }
         }
 
         //get members
         //cut down to relevant columns
         List<List<String>> members = getMembers(reader);
+        ArrayList<String> membersNames = new ArrayList<>();
         for(List<String> entry : members){
-            String members_forename = entry.get(members_forename_col_index);
-            String members_surname = entry.get(members_surname_col_index);
-            System.out.println("----------------");
-            System.out.println(members_forename + " ~ "+ members_surname);
+            String members_forename = entry.get(members_forename_col_index).strip().toLowerCase();
+            String members_surname = entry.get(members_surname_col_index).strip().toLowerCase();
+            String fullname = members_forename + " " + members_surname;
+            membersNames.add(fullname);
+
+            if(nameToSessionAllBookees.containsKey(fullname)){
+                System.out.println("The bookee: "+ fullname+ " has been found!!!");
+                BookingDetails existingDetails = nameToSessionAllBookees.get(fullname);
+                existingDetails.setMember(true);
+                nameToSessionAllBookees.put(fullname, existingDetails);
+            }
+        }
+
+        for (String name : nameToSessionAllBookees.keySet()) {
+            BookingDetails existingDetails = nameToSessionAllBookees.get(name);
+            String booking = existingDetails.getBookingSelected();
+            boolean isMember = existingDetails.isMember();
+            System.out.println(name + " | " + booking + " | " + isMember);
+        }
+
+        //nameToSessionAllBookees
+        //sessionToBookees
+
+
+        //sort alphabetically
+        for(String session : sessionToBookees.keySet()){
+            ArrayList<BookingDetails> bookeesForThatSession = sessionToBookees.get(session);
+
+            System.out.println("\nFor "+session+":");
+
+            for(int i = 0; i < bookeesForThatSession.size(); i++){
+                BookingDetails bookingDetails = bookeesForThatSession.get(i);
+                System.out.print("("+(i+1)+") "+bookingDetails.getName());
+                for(int j = bookingDetails.getName().length(); j < 50; j++) System.out.print("");
+                System.out.print(" | " + bookingDetails.isMember()+ "\n");
+            }
         }
     }
 
