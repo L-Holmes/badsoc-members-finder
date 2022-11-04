@@ -2,9 +2,10 @@ public class MemberFinder {
 
 
     /**
-     * Produces a file containing 2 columns;
+     * Produces a file containing 3 columns;
      * (1) Name of the bookee
      * (2) Whether they are a member or not
+     * (3) Day / time they have booked
      */
     public void produceBookingsList()
     {
