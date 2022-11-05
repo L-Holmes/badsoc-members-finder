@@ -1,3 +1,6 @@
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -158,27 +161,40 @@ public class BadSocInfoGetter {
             System.out.println(name + " | " + booking + " | " + isMember);
         }
 
-        //nameToSessionAllBookees
-        //sessionToBookees
 
+        //write to text file
+        try {
+            writeToTextFile(sessionToBookees);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 
-        //sort alphabetically
+    public static void writeToTextFile(HashMap<String, ArrayList<BookingDetails>> sessionToBookees) throws IOException {
+        PrintWriter pw = new PrintWriter(new FileWriter("out/output_files/out.txt"));
+
         for(String session : sessionToBookees.keySet()){
             ArrayList<BookingDetails> bookeesForThatSession = sessionToBookees.get(session);
 
-            System.out.println("\nFor "+session+":");
+            pw.write("For "+session+":\n");
 
             for(int i = 0; i < bookeesForThatSession.size(); i++){
                 BookingDetails bookingDetails = bookeesForThatSession.get(i);
-                System.out.print("(");
-                if(i < 9) System.out.print("0");
-                System.out.print((i+1)+") "+bookingDetails.getName());
-                for(int j = bookingDetails.getName().length(); j < 30; j++){
-                    System.out.print(" ");
-                }
-                System.out.print(" | " + bookingDetails.isMember()+ "\n");
+
+
+                StringBuilder outEntryText = new StringBuilder("(");
+                if(i < 9) outEntryText.append("0");
+                outEntryText.append(i + 1).append(") ");
+                outEntryText.append(bookingDetails.getName());
+                outEntryText.append(" ".repeat(Math.max(0, 25 - bookingDetails.getName().length())));
+                outEntryText.append(" | ").append(bookingDetails.isMember());
+                outEntryText.append("\n");
+                pw.write(outEntryText.toString());
             }
+            pw.write("\n");
         }
+
+        pw.close();
     }
 
     public static void main(String[] args)
