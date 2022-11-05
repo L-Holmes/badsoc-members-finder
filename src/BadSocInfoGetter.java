@@ -73,6 +73,13 @@ public class BadSocInfoGetter {
         return members;
     }
 
+    public List<List<String>> getAdditionalMembers(CSVReader reader)
+    {
+        String additionalMembersCSV = "static/additional_members.csv";
+        List<List<String>> additionalMembers = reader.readCSV(additionalMembersCSV);
+        System.out.println("additional members!!!!!!!!!!!!!!!!!!!!|" + additionalMembers.get(0)+"|");
+        return additionalMembers;
+    }
 
     public void getAllInfo()
     {
@@ -137,30 +144,12 @@ public class BadSocInfoGetter {
         }
 
         //get members
-        //cut down to relevant columns
         List<List<String>> members = getMembers(reader);
-        ArrayList<String> membersNames = new ArrayList<>();
-        for(List<String> entry : members){
-            String members_forename = entry.get(members_forename_col_index).strip().toLowerCase();
-            String members_surname = entry.get(members_surname_col_index).strip().toLowerCase();
-            String fullname = members_forename + " " + members_surname;
-            membersNames.add(fullname);
+        List<List<String>> additionalMembers = getAdditionalMembers(reader);
 
-            if(nameToSessionAllBookees.containsKey(fullname)){
-                System.out.println("The bookee: "+ fullname+ " has been found!!!");
-                BookingDetails existingDetails = nameToSessionAllBookees.get(fullname);
-                existingDetails.setMember(true);
-                nameToSessionAllBookees.put(fullname, existingDetails);
-            }
-        }
-
-        for (String name : nameToSessionAllBookees.keySet()) {
-            BookingDetails existingDetails = nameToSessionAllBookees.get(name);
-            String booking = existingDetails.getBookingSelected();
-            boolean isMember = existingDetails.isMember();
-            System.out.println(name + " | " + booking + " | " + isMember);
-        }
-
+        //update the memberships
+        nameToSessionAllBookees = updateMembership(members, nameToSessionAllBookees, members_forename_col_index, members_surname_col_index);
+        nameToSessionAllBookees = updateMembership(additionalMembers, nameToSessionAllBookees, 0, 1);
 
         //write to text file
         try {
@@ -168,6 +157,26 @@ public class BadSocInfoGetter {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    public HashMap<String, BookingDetails> updateMembership(List<List<String>> members, HashMap<String, BookingDetails> nameToSessionAllBookees, int members_forename_col_index, int members_surname_col_index)
+    {
+        for(List<String> entry : members){
+            String members_forename = entry.get(members_forename_col_index).strip().toLowerCase();
+            String members_surname = entry.get(members_surname_col_index).strip().toLowerCase();
+            String fullname = (members_forename + " " + members_surname).strip();
+
+            if(nameToSessionAllBookees.containsKey(fullname)){
+                System.out.println("The bookee: |"+ fullname+ "| has been found!!!");
+                BookingDetails existingDetails = nameToSessionAllBookees.get(fullname);
+                existingDetails.setMember(true);
+                nameToSessionAllBookees.put(fullname, existingDetails);
+            }
+            else{
+                System.out.println("Not found: |"+ fullname+ "|!!!");
+            }
+        }
+        return nameToSessionAllBookees;
     }
 
     public static void writeToTextFile(HashMap<String, ArrayList<BookingDetails>> sessionToBookees) throws IOException {
