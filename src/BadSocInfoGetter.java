@@ -47,6 +47,10 @@ public class BadSocInfoGetter {
         //
         String bookingsCSV = "static/bookings.csv";
         List<List<String>> bookings = reader.readCSV(bookingsCSV);
+
+        //remove the first entry as this is the headings
+        bookings.remove(0);
+
         return bookings;
     }
 
@@ -166,8 +170,12 @@ public class BadSocInfoGetter {
 
             for(int i = 0; i < bookeesForThatSession.size(); i++){
                 BookingDetails bookingDetails = bookeesForThatSession.get(i);
-                System.out.print("("+(i+1)+") "+bookingDetails.getName());
-                for(int j = bookingDetails.getName().length(); j < 50; j++) System.out.print("");
+                System.out.print("(");
+                if(i < 9) System.out.print("0");
+                System.out.print((i+1)+") "+bookingDetails.getName());
+                for(int j = bookingDetails.getName().length(); j < 30; j++){
+                    System.out.print(" ");
+                }
                 System.out.print(" | " + bookingDetails.isMember()+ "\n");
             }
         }
