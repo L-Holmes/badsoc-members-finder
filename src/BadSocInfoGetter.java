@@ -6,50 +6,26 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 
-class BookingDetails
-{
-    private String name = "[None]";
-    private boolean isMember = false;
-    private String bookingSelected = "[None]";
-
-    public BookingDetails(String name, String bookingSelected, boolean isMember){
-        this.name = name;
-        this.isMember = isMember;
-        this.bookingSelected = bookingSelected;
-    }
-
-    public boolean isMember() {
-        return isMember;
-    }
-
-    public void setMember(boolean member) {
-        isMember = member;
-    }
-
-    public String getBookingSelected() {
-        return bookingSelected;
-    }
-
-    public void setBookingSelected(String bookingSelected) {
-        this.bookingSelected = bookingSelected;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-}
 
 public class BadSocInfoGetter {
+    private String bookingsCSVPath = "static/bookings.csv";
+    private String membersCSVPath = "static/members.csv";
+    private String additionalMembersCSVPath = "static/additional_members.csv";
+    private String commonNameVariantsPath = "static/common_name_shortenings.csv";
+
+    public BadSocInfoGetter()
+    {}
+
+    public BadSocInfoGetter(String bookingsCSVPath, String membersCSVPath, String additionalMembersCSVPath)
+    {
+        this.bookingsCSVPath = bookingsCSVPath;
+        this.membersCSVPath = membersCSVPath;
+        this.additionalMembersCSVPath = additionalMembersCSVPath;
+    }
 
     public List<List<String>> getBookings(CSVReader reader)
     {
-        //
-        String bookingsCSV = "static/bookings.csv";
-        List<List<String>> bookings = reader.readCSV(bookingsCSV);
+        List<List<String>> bookings = reader.readCSV(bookingsCSVPath);
 
         //remove the first entry as this is the headings
         bookings.remove(0);
@@ -59,31 +35,31 @@ public class BadSocInfoGetter {
 
     public List<List<String>> getIndexInfo(CSVReader reader)
     {
-        //
         String columnIndexesCSV = "static/input_col_info.csv";
-        List<List<String>> columnIndexes = reader.readCSV(columnIndexesCSV);
-        return columnIndexes;
+        return reader.readCSV(columnIndexesCSV);
     }
 
     public List<List<String>> getMembers(CSVReader reader)
     {
-        //
-        String membersCSV = "static/members.csv";
-        List<List<String>> members = reader.readCSV(membersCSV);
-        return members;
+        return reader.readCSV(membersCSVPath);
     }
 
     public List<List<String>> getAdditionalMembers(CSVReader reader)
     {
-        String additionalMembersCSV = "static/additional_members.csv";
-        List<List<String>> additionalMembers = reader.readCSV(additionalMembersCSV);
-        System.out.println("additional members!!!!!!!!!!!!!!!!!!!!|" + additionalMembers.get(0)+"|");
-        return additionalMembers;
+        return reader.readCSV(additionalMembersCSVPath);
+    }
+
+    public List<List<String>> getCommonNameVariants(CSVReader reader)
+    {
+        return reader.readCSV(commonNameVariantsPath);
     }
 
     public void getAllInfo()
     {
         CSVReader reader = new CSVReader();
+
+        //get common name variants
+        List<List<String>> commonNames = getCommonNameVariants(reader);
 
         //get index info
         // get columns from index info
@@ -121,13 +97,14 @@ public class BadSocInfoGetter {
 
         for(List<String> entry : bookings){
             //get info
-            String book_name = entry.get(bookings_name_index).strip().toLowerCase();
+            String book_name = entry.get(bookings_name_index).strip().toLowerCase().replace("\"", "").strip();
             String book_session = entry.get(bookings_session_index).strip();
 
             //create booking entry
             BookingDetails bookingEntry = new BookingDetails(book_name, book_session, false);
 
             //update name to bookee
+            System.out.println("Adding book name: |" + book_name + "|");
             nameToSessionAllBookees.put(book_name,  bookingEntry);
 
             //update session to bookees
@@ -148,8 +125,8 @@ public class BadSocInfoGetter {
         List<List<String>> additionalMembers = getAdditionalMembers(reader);
 
         //update the memberships
-        nameToSessionAllBookees = updateMembership(members, nameToSessionAllBookees, members_forename_col_index, members_surname_col_index);
-        nameToSessionAllBookees = updateMembership(additionalMembers, nameToSessionAllBookees, 0, 1);
+        nameToSessionAllBookees = updateMembership(members, nameToSessionAllBookees, members_forename_col_index, members_surname_col_index, commonNames);
+        nameToSessionAllBookees = updateMembership(additionalMembers, nameToSessionAllBookees, 0, 1, commonNames);
 
         //write to text file
         try {
@@ -159,23 +136,78 @@ public class BadSocInfoGetter {
         }
     }
 
-    public HashMap<String, BookingDetails> updateMembership(List<List<String>> members, HashMap<String, BookingDetails> nameToSessionAllBookees, int members_forename_col_index, int members_surname_col_index)
-    {
-        for(List<String> entry : members){
+    public HashMap<String, BookingDetails> updateMembership(List<List<String>> members, HashMap<String, BookingDetails> nameToSessionAllBookees, int members_forename_col_index, int members_surname_col_index, List<List<String>> commonNameVariants) {
+        //check if they member,
+        //if not, check if their first name is in the common names list, and check for all variants of their name
+
+        //for array in other names
+        //  if forename in array:
+        //      for name in array (that is not name):
+        //          check if member
+
+
+        //iterate through members
+        for (List<String> entry : members) {
+
+            //get the member's full name
             String members_forename = entry.get(members_forename_col_index).strip().toLowerCase();
             String members_surname = entry.get(members_surname_col_index).strip().toLowerCase();
             String fullname = (members_forename + " " + members_surname).strip();
 
-            if(nameToSessionAllBookees.containsKey(fullname)){
-                System.out.println("The bookee: |"+ fullname+ "| has been found!!!");
-                BookingDetails existingDetails = nameToSessionAllBookees.get(fullname);
-                existingDetails.setMember(true);
-                nameToSessionAllBookees.put(fullname, existingDetails);
+            //check if that members is in the list of bookings, and if so, update that booking to be a member
+            if (nameToSessionAllBookees.containsKey(fullname)) {
+                nameToSessionAllBookees = updateBookingToBeAMember(fullname, nameToSessionAllBookees);
             }
             else{
-                System.out.println("Not found: |"+ fullname+ "|!!!");
+                //if that member was not in the list
+                //check if the member was in the list of bookings, but a different variant of that name was used
+
+                //Check all list of variants to see if that member name has a variant
+                for (List<String> nameVariants : commonNameVariants) {
+                    for(String checkName : nameVariants){
+                        checkName = checkName.toLowerCase().strip();
+
+                        //if the name has a variant
+                        if(checkName.equals(members_forename)){
+                            System.out.println("variant for the forename!" + fullname);
+
+                            //go and check each of its variants
+                            for(String variationOfGivenForenameName : nameVariants){
+                                if(variationOfGivenForenameName.equals(members_forename)) continue;
+
+                                //check if the variant appears in the bookings (and update that booking to be a member if it does)
+                                String variantFullname = (variationOfGivenForenameName.toLowerCase().strip() + " " + members_surname).strip();
+                                if (nameToSessionAllBookees.containsKey(variantFullname)) {
+                                    System.out.println(" :0 found variant! updating! "+ variantFullname);
+                                    nameToSessionAllBookees = updateBookingToBeAMember(variantFullname, nameToSessionAllBookees);
+                                    break;
+                                }
+                                else{
+                                    System.out.println(" :( does not contain variant name; "+ variantFullname);
+                                }
+                            }
+                        }
+                    }
+                }
+
+
+                System.out.println("Not found: |" + fullname + "|!!!");
+                for (String name : nameToSessionAllBookees.keySet()) {
+                    System.out.println("|" + name + "| != |" + fullname + "|");
+                }
             }
         }
+
+        return nameToSessionAllBookees;
+    }
+
+
+    private HashMap<String, BookingDetails> updateBookingToBeAMember(String fullname, HashMap<String, BookingDetails> nameToSessionAllBookees)
+    {
+        System.out.println("The bookee: |"+ fullname+ "| has been found!!!");
+        BookingDetails existingDetails = nameToSessionAllBookees.get(fullname);
+        existingDetails.setMember(true);
+        nameToSessionAllBookees.put(fullname, existingDetails);
         return nameToSessionAllBookees;
     }
 
@@ -206,8 +238,5 @@ public class BadSocInfoGetter {
         pw.close();
     }
 
-    public static void main(String[] args)
-    {
-        new BadSocInfoGetter().getAllInfo();
-    }
+
 }

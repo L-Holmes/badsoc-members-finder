@@ -17,9 +17,22 @@ public class Main {
     ------------------------------------------------------
      */
 
+    /*
+    TODO:
+    * handle people shortening their names. e.g. Dan -> Daniel (and vice versa)
+     */
+    public static void main(String[] args){
 
-    public static void main(String args[]){
-        MemberFinder memberFinder = new MemberFinder();
-        memberFinder.produceBookingsList();
+        FileChooser fileChooser = new FileChooser();
+        /*
+        String bookingsCSVPath = fileChooser.chooseCSVFile().getPath();
+        String membersCSVPath = fileChooser.chooseCSVFile().getPath();
+        String additionalMembersCSVPath =  fileChooser.chooseCSVFile().getPath();
+         */
+
+        //System.out.println("got a bookings path of: "+ bookingsCSVPath);
+
+        //new BadSocInfoGetter(bookingsCSVPath, membersCSVPath, additionalMembersCSVPath).getAllInfo();
+        new BadSocInfoGetter().getAllInfo();
     }
 }
